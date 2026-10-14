@@ -1,0 +1,181 @@
+[
+ {
+  "seed": 400000,
+  "items": 7,
+  "free": 4,
+  "kinds": [
+   "ball",
+   "box",
+   "can_lying",
+   "envelope"
+  ]
+ },
+ {
+  "seed": 400001,
+  "items": 5,
+  "free": 3,
+  "kinds": [
+   "box",
+   "envelope",
+   "mesh_bag",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400002,
+  "items": 10,
+  "free": 6,
+  "kinds": [
+   "ball",
+   "box",
+   "can_lying",
+   "envelope",
+   "mesh_bag",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400003,
+  "items": 6,
+  "free": 5,
+  "kinds": [
+   "bottle",
+   "box",
+   "can_lying",
+   "mesh_bag",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400004,
+  "items": 4,
+  "free": 3,
+  "kinds": [
+   "ball",
+   "mesh_bag",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400005,
+  "items": 4,
+  "free": 4,
+  "kinds": [
+   "ball",
+   "bottle",
+   "envelope"
+  ]
+ },
+ {
+  "seed": 400006,
+  "items": 7,
+  "free": 5,
+  "kinds": [
+   "ball",
+   "bottle",
+   "box",
+   "mesh_bag",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400007,
+  "items": 6,
+  "free": 4,
+  "kinds": [
+   "ball",
+   "bottle",
+   "box",
+   "envelope"
+  ]
+ },
+ {
+  "seed": 400008,
+  "items": 3,
+  "free": 3,
+  "kinds": [
+   "box",
+   "can_lying"
+  ]
+ },
+ {
+  "seed": 400009,
+  "items": 10,
+  "free": 5,
+  "kinds": [
+   "ball",
+   "box",
+   "envelope",
+   "mesh_bag",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400010,
+  "items": 5,
+  "free": 3,
+  "kinds": [
+   "box",
+   "envelope",
+   "mesh_bag"
+  ]
+ },
+ {
+  "seed": 400011,
+  "items": 10,
+  "free": 5,
+  "kinds": [
+   "ball",
+   "bottle",
+   "box",
+   "can_lying",
+   "envelope",
+   "mesh_bag",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400012,
+  "items": 11,
+  "free": 5,
+  "kinds": [
+   "ball",
+   "bottle",
+   "box",
+   "envelope",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400013,
+  "items": 4,
+  "free": 3,
+  "kinds": [
+   "bottle",
+   "can_lying",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400014,
+  "items": 3,
+  "free": 2,
+  "kinds": [
+   "ball",
+   "bottle",
+   "pouch"
+  ]
+ },
+ {
+  "seed": 400015,
+  "items": 11,
+  "free": 7,
+  "kinds": [
+   "bottle",
+   "box",
+   "envelope",
+   "mesh_bag",
+   "pouch"
+  ]
+ }
+]

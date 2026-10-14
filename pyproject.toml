@@ -1,0 +1,16 @@
+[project]
+name = "pickvision"
+version = "0.1.0"
+description = "RGB-D perception and suction-grasp planning for robotic picking from cluttered totes"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E731", "B008", "UP007", "E401"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

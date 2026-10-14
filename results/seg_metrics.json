@@ -1,0 +1,16 @@
+{
+  "test_totes": 250,
+  "rgbd": {
+    "iou_item": 0.8891344141536317,
+    "iou_boundary": 0.262545102358616,
+    "suction_ap": 0.9401392864585955,
+    "top1_pick_precision": 0.9679999947547913
+  },
+  "rgb_only": {
+    "iou_item": 0.8861312901587582,
+    "iou_boundary": 0.2564355351078979,
+    "suction_ap": 0.9328689096924345,
+    "top1_pick_precision": 0.9440000057220459
+  },
+  "params": 3218792
+}

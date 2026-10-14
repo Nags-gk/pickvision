@@ -1,0 +1,46 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Lint, tests, ONNX service test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -r requirements.txt
+      - run: ruff check .
+      - run: python -m pytest -q
+      - name: Smoke-test the closed-loop benchmark
+        run: python -m pickvision.evaluate --totes 2 --out /tmp/smoke.json --skip-sklearn
+
+  pages:
+    name: Deploy demo to GitHub Pages
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p site/model site/data
+          cp -r web/* site/
+          cp model/picknet.onnx site/model/
+          cp results/clear_tote.json results/seg_metrics.json site/data/
+          touch site/.nojekyll
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true
