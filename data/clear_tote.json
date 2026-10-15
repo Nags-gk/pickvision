@@ -1,0 +1,72 @@
+{
+  "oracle (ground-truth suction map)": {
+    "pick_success_rate": 0.9969325153374233,
+    "first_pick_success": 1.0,
+    "items_cleared": 0.7065217391304348,
+    "attempts": 326,
+    "picked": 325,
+    "items": 460,
+    "totes": 60,
+    "seconds": 27.1
+  },
+  "random point on item": {
+    "pick_success_rate": 0.15824175824175823,
+    "first_pick_success": 0.3333333333333333,
+    "items_cleared": 0.3130434782608696,
+    "attempts": 910,
+    "picked": 144,
+    "items": 460,
+    "totes": 60,
+    "seconds": 78.0
+  },
+  "highest-flat heuristic (OpenCV)": {
+    "pick_success_rate": 0.2417452830188679,
+    "first_pick_success": 0.6666666666666666,
+    "items_cleared": 0.44565217391304346,
+    "attempts": 848,
+    "picked": 205,
+    "items": 460,
+    "totes": 60,
+    "seconds": 73.0
+  },
+  "gradient boosting (scikit-learn)": {
+    "pick_success_rate": 0.3904208998548621,
+    "first_pick_success": 0.8666666666666667,
+    "items_cleared": 0.5847826086956521,
+    "attempts": 689,
+    "picked": 269,
+    "items": 460,
+    "totes": 60,
+    "seconds": 298.7
+  },
+  "PickNet RGB only": {
+    "pick_success_rate": 0.3918722786647315,
+    "first_pick_success": 1.0,
+    "items_cleared": 0.5869565217391305,
+    "attempts": 689,
+    "picked": 270,
+    "items": 460,
+    "totes": 60,
+    "seconds": 91.8
+  },
+  "PickNet RGB-D": {
+    "pick_success_rate": 0.42260061919504643,
+    "first_pick_success": 1.0,
+    "items_cleared": 0.5934782608695652,
+    "attempts": 646,
+    "picked": 273,
+    "items": 460,
+    "totes": 60,
+    "seconds": 80.1
+  },
+  "PickNet RGB-D, confidence-gated": {
+    "pick_success_rate": 0.7041095890410959,
+    "first_pick_success": 1.0,
+    "items_cleared": 0.558695652173913,
+    "attempts": 365,
+    "picked": 257,
+    "items": 460,
+    "totes": 60,
+    "seconds": 51.1
+  }
+}

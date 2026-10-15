@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PickVision: suction picking from cluttered totes</title>
+<meta name="description" content="In-browser RGB-D perception for robotic picking: a MobileNetV3 segmentation and suction-affordance network running in ONNX Runtime Web.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+</head>
+<body>
+<header class="bar wrap">
+  <a class="mark" href="#">PickVision</a>
+  <nav><a href="#results">Results</a><a href="#method">Method</a><a href="https://github.com/Nags-gk/pickvision">Source on GitHub</a></nav>
+</header>
+
+<main>
+  <section class="cell wrap">
+    <div class="intro">
+      <h1>Where should the suction cup go?</h1>
+      <p>A picking robot looks down into a tote of mixed items and has to choose one point to grab. This page runs the perception model in your browser: it outlines each item and scores every pixel for whether a vacuum cup would seal there <em>and</em> lift the item free. Pick a tote, then check the top choices against the simulator's ground truth.</p>
+    </div>
+
+    <div class="workcell">
+      <div class="view">
+        <canvas id="view" width="512" height="512" aria-label="Tote image with model overlay"></canvas>
+        <div class="toolbar" role="group" aria-label="View options">
+          <fieldset>
+            <legend>Overlay</legend>
+            <label><input type="radio" name="ov" value="suction" checked> Suction score</label>
+            <label><input type="radio" name="ov" value="items"> Items</label>
+            <label><input type="radio" name="ov" value="truth"> Ground truth</label>
+            <label><input type="radio" name="ov" value="none"> Camera only</label>
+          </fieldset>
+          <fieldset>
+            <legend>Run on</legend>
+            <label><input type="radio" name="runon" value="browser" checked> This browser (ONNX Runtime Web)</label>
+            <label><input type="radio" name="runon" value="aws"> AWS Lambda API</label>
+          </fieldset>
+          <label class="sw"><input type="checkbox" id="nodepth"> Simulate a depth-camera failure (RGB only)</label>
+          <p class="hint" id="ovNote" hidden>The API returns ranked picks, not the full score maps, so this overlay is only available when the model runs in the browser.</p>
+        </div>
+      </div>
+      <aside class="panel">
+        <h2>Ranked picks</h2>
+        <p class="status" id="status">Loading model…</p>
+        <ol id="picks" class="picks"></ol>
+        <p class="hint">A check mark means the simulator confirms the cup seals on a free, sealable surface at that point. A cross means it would miss, slip or snag an item buried under another one.</p>
+        <label class="upload">Try your own top-down photo
+          <input type="file" id="file" accept="image/*">
+        </label>
+      </aside>
+    </div>
+    <div class="totes" id="totes" role="list" aria-label="Held-out test totes"></div>
+  </section>
+
+  <section id="results" class="band">
+    <div class="wrap">
+      <h2>Clearing whole totes</h2>
+      <p class="note" id="clearNote">Each policy sees only the camera. On a successful pick the item is lifted out and the scene is re-rendered; a failed point is not retried. Every tote gets two attempts per item, and scoring stops once nothing left in the tote can be lifted (mesh bags and items buried under them go to a person).</p>
+      <table id="clearTable"><thead><tr><th>Policy</th><th>Pick success</th><th>First-pick success</th><th>Items cleared</th></tr></thead><tbody></tbody></table>
+      <h3>Perception quality on 250 held-out totes</h3>
+      <table id="segTable"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section id="method" class="wrap method">
+    <h2>How it is built</h2>
+    <div class="cols">
+      <div><h3>Simulated totes with exact labels</h3><p>A procedural RGB-D renderer stacks boxes, envelopes, bottles, cans, pouches, mesh bags and balls. It randomises lighting, shadows, specular glare, sensor noise and depth dropout. A physics oracle labels a pixel pickable only if the cup's whole footprint is flat enough for that material, clear of edges, and on an item with nothing resting on it.</p></div>
+      <div><h3>One network, four maps</h3><p>A COCO-pretrained MobileNetV3 LR-ASPP is fine-tuned in PyTorch with a fourth depth input channel. It outputs tote, item, boundary and suction probability. Depth is dropped for 30% of training images, so the same model still works when the depth camera fails.</p></div>
+      <div><h3>From pixels to a pick pose</h3><p>OpenCV turns the maps into item instances and suction candidates with non-maximum suppression. A plane fit to the depth patch gives the cup's approach normal. The same ONNX model runs here in ONNX Runtime Web and as a FastAPI service on AWS Lambda (arm64) behind API Gateway, deployed with the AWS CDK.</p></div>
+    </div>
+  </section>
+</main>
+<footer class="wrap foot"><p>Built by Nagaraj Gireppa Kanni. Simulated data only, not a real robot cell. <a href="https://github.com/Nags-gk/pickvision">Code, tests and benchmark methodology</a>.</p></footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>
