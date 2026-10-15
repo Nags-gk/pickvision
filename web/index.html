@@ -35,7 +35,13 @@
             <label><input type="radio" name="ov" value="truth"> Ground truth</label>
             <label><input type="radio" name="ov" value="none"> Camera only</label>
           </fieldset>
+          <fieldset>
+            <legend>Run on</legend>
+            <label><input type="radio" name="runon" value="browser" checked> This browser (ONNX Runtime Web)</label>
+            <label><input type="radio" name="runon" value="aws"> AWS Lambda API</label>
+          </fieldset>
           <label class="sw"><input type="checkbox" id="nodepth"> Simulate a depth-camera failure (RGB only)</label>
+          <p class="hint" id="ovNote" hidden>The API returns ranked picks, not the full score maps, so this overlay is only available when the model runs in the browser.</p>
         </div>
       </div>
       <aside class="panel">
@@ -66,7 +72,7 @@
     <div class="cols">
       <div><h3>Simulated totes with exact labels</h3><p>A procedural RGB-D renderer stacks boxes, envelopes, bottles, cans, pouches, mesh bags and balls. It randomises lighting, shadows, specular glare, sensor noise and depth dropout. A physics oracle labels a pixel pickable only if the cup's whole footprint is flat enough for that material, clear of edges, and on an item with nothing resting on it.</p></div>
       <div><h3>One network, four maps</h3><p>A COCO-pretrained MobileNetV3 LR-ASPP is fine-tuned in PyTorch with a fourth depth input channel. It outputs tote, item, boundary and suction probability. Depth is dropped for 30% of training images, so the same model still works when the depth camera fails.</p></div>
-      <div><h3>From pixels to a pick pose</h3><p>OpenCV turns the maps into item instances and suction candidates with non-maximum suppression. A plane fit to the depth patch gives the cup's approach normal. The same model serves through a FastAPI microservice and here through ONNX Runtime Web.</p></div>
+      <div><h3>From pixels to a pick pose</h3><p>OpenCV turns the maps into item instances and suction candidates with non-maximum suppression. A plane fit to the depth patch gives the cup's approach normal. The same ONNX model runs here in ONNX Runtime Web and as a FastAPI service on AWS Lambda (arm64) behind API Gateway, deployed with the AWS CDK.</p></div>
     </div>
   </section>
 </main>

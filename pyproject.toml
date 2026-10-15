@@ -7,6 +7,7 @@ license = { text = "MIT" }
 
 [tool.ruff]
 line-length = 120
+extend-exclude = ["build", "infra"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]

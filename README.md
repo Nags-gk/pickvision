@@ -4,9 +4,9 @@
 A MobileNetV3 LR-ASPP network, fine-tuned in PyTorch, segments items and scores every pixel for
 whether a vacuum cup would seal *and* lift the item free. OpenCV turns those maps into ranked 3-D
 pick poses. The same ONNX model is served by a FastAPI microservice and runs in the browser with
-ONNX Runtime Web.
+ONNX Runtime Web. It is deployed on AWS Lambda behind API Gateway.
 
-**Live demo: https://nags-gk.github.io/pickvision/**
+**Live demo: https://nags-gk.github.io/pickvision/** (switch "Run on" to *AWS Lambda API* to use the deployed service)
 
 [![CI / CD](https://github.com/Nags-gk/pickvision/actions/workflows/ci.yml/badge.svg)](https://github.com/Nags-gk/pickvision/actions/workflows/ci.yml)
 
@@ -48,7 +48,7 @@ flowchart LR
   G[Procedural RGB-D tote renderer<br/>domain randomisation] -->|1,500 train / 250 val / 250 test| T[PyTorch fine-tuning<br/>MobileNetV3 LR-ASPP, 4-ch input]
   T -->|ONNX opset 17| O[picknet.onnx]
   O --> W[ONNX Runtime Web<br/>browser demo]
-  O --> F[FastAPI service<br/>POST /v1/picks]
+  O --> F[FastAPI service<br/>POST /v1/picks<br/>AWS Lambda arm64 + API Gateway]
   O --> E[Closed-loop benchmark]
   C[RGB-D frame] --> O --> M[4 maps: tote, item, boundary, suction]
   M -->|OpenCV: components, NMS,<br/>plane-fit normal| P[ranked 3-D pick poses]
@@ -81,14 +81,36 @@ flowchart LR
 
 **Serving** (`pickvision/service.py`)
 * A FastAPI service with no PyTorch at runtime, only ONNX Runtime.
-* `POST /v1/picks` takes an RGB PNG and an optional 16-bit depth PNG in millimetres and returns ranked picks with 3-D points and normals.
+* `POST /v1/picks` takes an RGB PNG plus optional geometry and returns ranked picks with 3-D points and normals. Geometry is either a 16-bit depth PNG in millimetres, or the 8-bit height image a browser can produce.
+* Unreadable uploads get a 422 with a plain message, not a stack trace.
 * `/healthz` and `/metrics` report request count, errors, and p50/p95 latency.
+
+## Deployed on AWS
+
+`infra/` is an AWS CDK (TypeScript) stack in us-east-2:
+
+* **Lambda:** Python 3.12 on arm64 (Graviton), 2 GB. The FastAPI app runs through the Mangum adapter, with ONNX Runtime only and no PyTorch, in a 220 MB package.
+* **API Gateway HTTP API:** routes `POST /v1/picks`, `GET /healthz` and `GET /metrics`. CORS is restricted to the demo page, and stage throttling is 10 rps with a burst of 20.
+* **Logs and alerting:** CloudWatch logs are kept for 2 weeks. A function-error alarm notifies an SNS email topic.
+
+Measured against the live endpoint:
+* About 50 ms of model and grasp-planning time per 256×256 image.
+* 0.25–0.4 s warm round trip from a browser, and about 3 s on a cold start.
+* On held-out tote 400000, the top 5 picks returned by the API all seal and lift in the simulator.
+
+```bash
+./scripts/build_lambda.sh                              # fetch arm64 wheels, add code + model into build/lambda
+cd infra && npm ci && npm test                         # CDK assertion tests
+npx cdk deploy PickVision -c alertEmail=you@example.com
+curl -F rgb=@web/samples/400000_rgb.png -F height=@web/samples/400000_height.png <ApiUrl>/v1/picks
+npx cdk destroy PickVision                             # tear down
+```
 
 ## Run it
 
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
-python -m pytest -q                                   # 10 tests, including an end-to-end API test on the ONNX model
+python -m pytest -q                                   # 11 tests, including end-to-end API and Lambda-adapter tests
 python -m pickvision.dataset --out data               # render 2,000 totes (about 5 minutes on 2 cores)
 python -m pickvision.train --data data --out artifacts
 python -m pickvision.export && python -m pickvision.report
@@ -102,6 +124,8 @@ uvicorn pickvision.service:app --port 8080
 * Instance separation relies on a thin boundary class, which the network finds hard (boundary IoU 26%). Touching items of similar colour can merge. The suction map does not depend on it.
 * Suction only, with no two-finger grasps, and no arm motion planning or collision checking.
 * The browser demo's "try your own photo" runs in RGB-only mode and has no ground truth to check against.
+* The API ranks peaks across the whole tote, so its top 5 can include several points on one item. The browser demo lists one best point per item.
+* The API authenticates nobody; throttling and CORS are its only guards. A production cell would sit on a private network or behind IAM auth.
 
 ## License
 

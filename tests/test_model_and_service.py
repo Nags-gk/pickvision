@@ -40,5 +40,15 @@ def test_service_end_to_end():
     assert body["mode"] == "rgbd" and len(body["picks"]) >= 1
     p = body["picks"][0]
     assert 0 <= p["x"] < 256 and 0 <= p["y"] < 256 and abs(np.linalg.norm(p["normal"]) - 1) < 1e-6
-    assert c.post("/v1/picks", files={"rgb": ("x.png", b"not an image")}).status_code == 422
-    assert c.get("/metrics").json()["requests"] == 2
+    bad = c.post("/v1/picks", files={"rgb": ("x.png", b"not an image")})
+    assert bad.status_code == 422 and bad.json()["detail"] == "'rgb' is not a readable PNG or JPEG image"
+    # browser path: 8-bit normalised height instead of 16-bit depth gives the same top pick
+    from pickvision.preprocess import height_channel
+    hb = io.BytesIO()
+    Image.fromarray((height_channel(g["depth"]) * 255).round().astype(np.uint8)).save(hb, format="PNG")
+    rgb.seek(0)
+    r2 = c.post("/v1/picks", files={"rgb": ("t.png", rgb.getvalue()), "height": ("h.png", hb.getvalue())})
+    assert r2.status_code == 200 and r2.json()["mode"] == "rgbd"
+    p2 = r2.json()["picks"][0]
+    assert abs(p2["x"] - p["x"]) <= 3 and abs(p2["y"] - p["y"]) <= 3
+    assert c.get("/metrics").json()["requests"] == 3

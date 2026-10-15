@@ -3,18 +3,10 @@ import torch
 import torch.nn as nn
 from torchvision.models.segmentation import LRASPP_MobileNet_V3_Large_Weights, lraspp_mobilenet_v3_large
 
+from pickvision.preprocess import CAM_HEIGHT, HEIGHT_RANGE, height_channel  # noqa: F401  (re-exported)
+
 MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-CAM_HEIGHT = 1.0
-HEIGHT_RANGE = 0.3  # metres of pile height mapped to [0, 1]
-
-
-def height_channel(depth):
-    """Depth (m, 0 = missing) -> normalised height above the tote floor (0 where missing)."""
-    import numpy as np
-    h = np.clip((CAM_HEIGHT - depth) / HEIGHT_RANGE, 0, 1)
-    h[depth <= 0] = 0
-    return h.astype("float32")
 
 
 class PickNet(nn.Module):

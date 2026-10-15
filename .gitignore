@@ -4,3 +4,8 @@ site/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+build/
+infra/node_modules/
+infra/cdk.out/
+infra/dist/
+cdk-outputs.json

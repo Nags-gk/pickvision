@@ -1,9 +1,12 @@
 const $ = (s) => document.querySelector(s);
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const S = 256;
+const API = "https://ry2xzlk491.execute-api.us-east-2.amazonaws.com";
+const onAws = () => document.querySelector("input[name=runon]:checked")?.value === "aws";
 
 let session = null;
 let current = null; // { rgb: ImageData, height: Uint8ClampedArray|null, truth: Uint8ClampedArray|null, label }
+let runId = 0;      // guards against a slow network answer overwriting a newer one
 let result = null;  // { maps: Float32Array, picks: [...] , inst: Int32Array }
 
 async function loadImageData(url) {
@@ -24,9 +27,53 @@ async function loadTote(seed) {
   await run();
 }
 
+const toPng = (imageData) => {
+  const c = new OffscreenCanvas(S, S);
+  c.getContext("2d").putImageData(imageData, 0, 0);
+  return c.convertToBlob({ type: "image/png" });
+};
+
+// Same model, served by AWS Lambda behind API Gateway. The browser sends the RGB image and the
+// 8-bit height image it already has; the service returns ranked picks (not the full maps).
+async function runAws(noDepth, id) {
+  const form = new FormData();
+  form.append("rgb", await toPng(current.rgb), "rgb.png");
+  if (!noDepth) {
+    const h = new ImageData(S, S);
+    for (let i = 0; i < S * S; i++) h.data.set([current.height[i], current.height[i], current.height[i], 255], i * 4);
+    form.append("height", await toPng(h), "height.png");
+  }
+  $("#status").textContent = `${current.label}: sending to AWS Lambda…`;
+  const t0 = performance.now();
+  const r = await fetch(`${API}/v1/picks?k=5`, { method: "POST", body: form });
+  const body = await r.json();
+  const rtt = performance.now() - t0;
+  if (!r.ok) throw new Error(body.detail || `HTTP ${r.status}`);
+  if (id !== runId) return false;
+  result = { maps: null, inst: null, picks: body.picks.map((p) => ({ x: p.x, y: p.y, score: p.score })) };
+  const cold = rtt > 1500 ? " (includes a cold start)" : "";
+  $("#status").textContent = `${current.label}: ${noDepth ? "RGB only" : "RGB + depth"} on AWS Lambda (arm64, us-east-2). Model and grasp planning ${body.latency_ms.toFixed(0)} ms on the server, ${rtt.toFixed(0)} ms round trip${cold}, ${body.items_detected} items found.`;
+  return true;
+}
+
 async function run() {
-  if (!session || !current) return;
+  if (!current) return;
   const noDepth = $("#nodepth").checked || !current.height;
+  const id = ++runId;
+  if (onAws()) {
+    try { if (!(await runAws(noDepth, id))) return; } catch (e) {
+      if (id !== runId) return;
+      result = null;
+      $("#status").textContent = `The AWS endpoint did not answer (${e.message}). It may have been taken down to save cost; switch back to "This browser".`;
+      $("#picks").innerHTML = "";
+      draw();
+      return;
+    }
+    renderPicks();
+    draw();
+    return;
+  }
+  if (!session) return;
   const x = new Float32Array(4 * S * S);
   const d = current.rgb.data;
   for (let i = 0; i < S * S; i++) {
@@ -125,7 +172,9 @@ function draw() {
   g.drawImage(base, 0, 0, W, W);
   if (!result) return;
   const mode = document.querySelector("input[name=ov]:checked").value;
-  if (mode !== "none") {
+  const needsMaps = mode === "suction" || mode === "items";
+  $("#ovNote").hidden = !(needsMaps && !result.maps);
+  if (mode !== "none" && !(needsMaps && !result.maps)) {
     const ov = new ImageData(S, S);
     for (let i = 0; i < S * S; i++) {
       let r = 0, gg = 0, b = 0, a = 0;
@@ -208,6 +257,7 @@ async function boot() {
   $("#totes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) loadTote(b.dataset.seed); });
   document.querySelectorAll("input[name=ov]").forEach((r) => r.addEventListener("change", () => current && draw()));
   $("#nodepth").addEventListener("change", run);
+  document.querySelectorAll("input[name=runon]").forEach((r) => r.addEventListener("change", run));
   $("#file").addEventListener("change", onUpload);
   loadResults();
   try {

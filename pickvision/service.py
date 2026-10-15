@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from PIL import Image
 
 from pickvision.grasp import instances_from_semantic, rank_picks
-from pickvision.model import height_channel
+from pickvision.preprocess import CAM_HEIGHT, HEIGHT_RANGE, height_channel
 
 MODEL_PATH = os.environ.get("PICKNET_ONNX", os.path.join(os.path.dirname(__file__), "..", "model", "picknet.onnx"))
 app = FastAPI(title="PickVision", version="0.1.0")
@@ -59,19 +59,33 @@ def metrics():
             "latency_ms_p50": float(np.percentile(lat, 50)), "latency_ms_p95": float(np.percentile(lat, 95))}
 
 
+def _read_image(data: bytes, field: str, mode: str | None = None) -> np.ndarray:
+    try:
+        im = Image.open(io.BytesIO(data))
+        return np.asarray(im.convert(mode) if mode else im)
+    except (OSError, ValueError) as e:  # PIL.UnidentifiedImageError is an OSError
+        raise ValueError(f"'{field}' is not a readable PNG or JPEG image") from e
+
+
 @app.post("/v1/picks")
-async def picks(rgb: UploadFile = File(...), depth: UploadFile | None = File(None), k: int = 5):
+async def picks(rgb: UploadFile = File(...), depth: UploadFile | None = File(None),
+                height: UploadFile | None = File(None), k: int = 5):
+    """rgb: colour image. Optional geometry, either `depth` (16-bit PNG, millimetres) or `height`
+    (8-bit PNG, 0-255 = 0-0.3 m above the tote floor, 0 = unknown; what a browser can produce)."""
     t0 = time.perf_counter()
     STATS["requests"] += 1
     try:
-        img = np.asarray(Image.open(io.BytesIO(await rgb.read())).convert("RGB"))
+        img = _read_image(await rgb.read(), "rgb", "RGB")
         dep = None
         if depth is not None:
-            dep = np.asarray(Image.open(io.BytesIO(await depth.read()))).astype(np.float32) / 1000.0
-            if dep.shape != img.shape[:2]:
-                raise ValueError("depth and rgb sizes differ")
-        _, inst, ranked = infer(img, dep, k=k)
-    except (ValueError, OSError) as e:
+            dep = _read_image(await depth.read(), "depth").astype(np.float32) / 1000.0
+        elif height is not None:
+            h = _read_image(await height.read(), "height", "L").astype(np.float32) / 255.0
+            dep = np.where(h > 0, CAM_HEIGHT - h * HEIGHT_RANGE, 0.0).astype(np.float32)
+        if dep is not None and dep.shape != img.shape[:2]:
+            raise ValueError("geometry image and rgb sizes differ")
+        _, inst, ranked = infer(img, dep, k=max(1, min(k, 20)))
+    except ValueError as e:
         STATS["errors"] += 1
         raise HTTPException(status_code=422, detail=str(e)) from e
     ms = (time.perf_counter() - t0) * 1000
